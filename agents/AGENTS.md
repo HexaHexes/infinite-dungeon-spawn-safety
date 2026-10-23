@@ -26,8 +26,17 @@ other suite dependency: it works in a pack without the dungeon installed.
   classification, config resolution) on classes that import no Minecraft or
   Mojang types, or JUnit fails with `NoClassDefFoundError`.
 - Consuming `infinite-dungeon-api` requires Maven credentials: GitHub Packages
-  needs a read token (`read:packages`) supplied as a repository secret, because
-  a workflow token cannot read a package owned by another repository.
+  needs a read token (`read:packages`), because a workflow token cannot read a
+  package owned by another repository. Measured status codes (do not invert
+  these): an unauthenticated read answers **401** whether or not the coordinate
+  is real, and an authenticated read of a nonexistent version answers **404**.
+  So 401 points at credentials that never arrived and 404 at a wrong coordinate
+  or version - the two failures are distinguishable. The org secret
+  `PACKAGE_READ_TOKEN` supplies the token - inject it **scoped to the Gradle step
+  only** (`env: GITHUB_TOKEN: ${{ secrets.PACKAGE_READ_TOKEN }}`), never at job
+  level, or `actions/checkout` and the `gh` CLI steps silently change what they
+  authenticate as. Locally, put `gpr.user` / `gpr.key` in
+  `~/.gradle/gradle.properties` instead.
 
 ---
 
