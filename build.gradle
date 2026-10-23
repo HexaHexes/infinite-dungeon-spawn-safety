@@ -74,6 +74,7 @@ def generateModMetadata = tasks.register('generateModMetadata', ProcessResources
             mod_version            : mod_version,
             mod_authors            : mod_authors,
             mod_description        : mod_description,
+            api_version            : api_version,
     ]
     inputs.properties replaceProperties
     expand replaceProperties
@@ -111,12 +112,17 @@ repositories {
 }
 
 dependencies {
-    // Required per agents/AGENTS.md: the gate's ambient magicule and entity power
-    // values come from the API's services. compileOnly keeps it off the shipped
-    // jar (the API is a separate mod at runtime) and off the GameTest runtime,
-    // which does not need it until the glue calling AmbientMagicule /
-    // EntityPowerStats is written.
-    compileOnly 'org.bitwisemadness.infinitedungeonapi:infinite_dungeon_api:1.0.0-alpha.6'
+    // infinite-dungeon-api is required in every context: main code extends the
+    // API's reload listener and feeds its classification holder, so the jar must
+    // be present when compiling, when testing, and when the game runs. It is
+    // never packaged - the API ships as its own mod, declared required in
+    // neoforge.mods.toml - and testImplementation puts it on the JUnit
+    // classpath, which otherwise carries no API types at all. The version comes
+    // from gradle.properties so the toml's required range cannot drift from the
+    // artifact this build resolves.
+    compileOnly "org.bitwisemadness.infinitedungeonapi:infinite_dungeon_api:${api_version}"
+    runtimeOnly "org.bitwisemadness.infinitedungeonapi:infinite_dungeon_api:${api_version}"
+    testImplementation "org.bitwisemadness.infinitedungeonapi:infinite_dungeon_api:${api_version}"
 
     // JUnit suite: the CI junit check grades it and refuses to pass on an empty
     // run, so this configuration must stay wired in every derived repo.

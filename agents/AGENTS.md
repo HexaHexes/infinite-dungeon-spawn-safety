@@ -23,8 +23,13 @@ other suite dependency: it works in a pack without the dungeon installed.
   `infinite-dungeon-api`'s `NaturalSpawns`; adding a spawn type there is an API
   decision, not a local one.
 - Unit tests run without a Minecraft runtime: keep pure logic (gate math,
-  classification, config resolution) on classes that import no Minecraft or
-  Mojang types, or JUnit fails with `NoClassDefFoundError`.
+  classification, config resolution, list precedence, the data reducer) on
+  classes that import no Minecraft or Mojang types, or JUnit fails with
+  `NoClassDefFoundError`. `infinite-dungeon-api` **is** on the JUnit classpath
+  (`testImplementation`), so its pure types - `ResourceRef`, `TagExpansion`,
+  `RequiredModFilter`, `ClassificationOverrides`, `SpawnCategory` - are usable
+  in tests; its game-facing types and every codec are not, because Minecraft and
+  Mojang stay off the test classpath.
 - Consuming `infinite-dungeon-api` requires Maven credentials: GitHub Packages
   needs a read token (`read:packages`), because a workflow token cannot read a
   package owned by another repository. Measured status codes (do not invert

@@ -3,6 +3,8 @@ package org.bitwisemadness.infinitedungeonspawnsafety;
 import com.mojang.logging.LogUtils;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.common.NeoForge;
+import org.bitwisemadness.infinitedungeonspawnsafety.safety.SafetyDataReloadListener;
 import org.slf4j.Logger;
 
 /**
@@ -20,6 +22,9 @@ public final class InfiniteDungeonSpawnSafety {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public InfiniteDungeonSpawnSafety(IEventBus modBus) {
+        // Datapack lists and classification overrides load through the API's
+        // reload machinery on server start and on every /reload.
+        NeoForge.EVENT_BUS.addListener(SafetyDataReloadListener::onAddReloadListeners);
         LOGGER.info("Infinite Dungeon Spawn Safety initialized");
     }
 }
