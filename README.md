@@ -16,6 +16,9 @@ mob.
   spawn eggs, and events are untouched, and chunk generation never changes.
 - Whitelists and blacklists per category, plus classification overrides, come
   from datapacks and reload with `/reload`.
+- List precedence is simple: a switched-off category never spawns, a blacklist
+  entry always blocks, and a whitelist with entries limits its category to what
+  it lists.
 
 ## Dependencies
 

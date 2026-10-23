@@ -62,8 +62,31 @@ them, and the default dimension list only names the overworld.
   and `blacklist` entity references, with the shared `required_mod` gate and
   id-or-tag references from the API's data utilities.
 
+A category file:
+
+```json
+{
+  "required_mod": "tensura",
+  "whitelist": ["minecraft:zombie", "#minecraft:raiders"],
+  "blacklist": ["minecraft:creeper"]
+}
+```
+
+`classification.json` maps entity type ids to categories:
+
+```json
+{
+  "minecraft:creeper": "neutral"
+}
+```
+
 Precedence: a disabled category blocks its mobs; a blacklist beats a whitelist;
 a non-empty whitelist restricts to its members.
+
+Multi-pack rules: a `classification.json` merges by entity id, later location
+winning per key; each category file replaces that category wholesale, so a
+higher-priority pack supersedes rather than appends. Files are collected in
+sorted location order, which makes both deterministic.
 
 ## 5. Classification
 
@@ -100,12 +123,12 @@ category, then passive. The rules live in the API
 
 ## 8. Delivery waves
 
-- Wave S1: config schema, dimension filter, category toggles, and the natural
-  spawn interception.
-- Wave S2: datapack category lists and classification overrides loading and
+- Wave S1: config schema, dimension filter, and category toggles.
+- Wave S2: the magicule gate with the deviation band and scale.
+- Wave S3: datapack category lists and classification overrides loading and
   `/reload`.
-- Wave S3: the magicule gate with the deviation band and scale.
-- Wave S4: diagnostics (a debug command or log line explaining why a spawn was
+- Wave S4: the natural spawn interception through the API's services.
+- Wave S5: diagnostics (a debug command or log line explaining why a spawn was
   blocked) and the docs polish.
 
 Each wave is one feature per PR and one alpha bump.
@@ -117,12 +140,17 @@ JUnit (pure logic, no game runtime):
 - config precedence and dimension filter resolution;
 - category precedence over whitelist and blacklist;
 - gate math: strict rule, deviation band, scale, zero-value no-op, fallback;
-- classification application through the API's rules.
+- classification application through the API's rules;
+- list loading through the Minecraft-free reducer: required-mod gating,
+  whole-file replacement per category, and the keyed classification merge.
 
 GameTest (live server):
 
-- a natural spawn is gated and a spawner spawn is not, with stub providers;
-- the reload path replaces the category lists.
+- a natural spawn is gated and a spawner spawn is not, with stub providers.
+
+The live reload's observable effect lands with the interception wave: until a
+spawn consults the tables, a reload is only observable through the pure reducer,
+which is why the loading rules are covered in JUnit instead of in game.
 
 ## 10. Decision record
 

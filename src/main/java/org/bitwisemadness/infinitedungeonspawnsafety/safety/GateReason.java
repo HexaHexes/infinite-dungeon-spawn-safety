@@ -15,6 +15,15 @@ public enum GateReason {
     /** The mob's category is allowed and the magicule rules do not apply. */
     CATEGORY_ALLOWED,
 
+    /** The mob is on its category's datapack blacklist. */
+    BLACKLISTED,
+
+    /** The mob falls outside a non-empty datapack whitelist. */
+    OUTSIDE_WHITELIST,
+
+    /** The datapack lists allow the mob. */
+    LIST_ALLOWED,
+
     /** The gate is switched off by config. */
     GATE_DISABLED,
 
