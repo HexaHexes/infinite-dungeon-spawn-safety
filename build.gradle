@@ -89,13 +89,37 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 
-// JUnit suite: the CI junit check grades it and refuses to pass on an empty
-// run, so this configuration must stay wired in every derived repo.
 repositories {
     mavenCentral()
+
+    // infinite-dungeon-api, from the org's GitHub Packages registry. Measured
+    // status codes when resolution fails: 401 means no credentials reached the
+    // registry (the CI secret is missing or hidden from this workflow), while
+    // 404 means credentials arrived but the coordinate or version is wrong -
+    // private packages are never confirmed to anonymous callers, so a bogus
+    // coordinate reads 404 only when authenticated. CI injects
+    // PACKAGE_READ_TOKEN as GITHUB_TOKEN on the Gradle steps; locally supply
+    // gpr.user / gpr.key in ~/.gradle/gradle.properties.
+    maven {
+        name = 'GitHubPackages'
+        url = uri('https://maven.pkg.github.com/HexaHexes/infinite-dungeon-api')
+        credentials {
+            username = System.getenv('GITHUB_ACTOR') ?: project.findProperty('gpr.user')
+            password = System.getenv('GITHUB_TOKEN') ?: project.findProperty('gpr.key')
+        }
+    }
 }
 
 dependencies {
+    // Required per agents/AGENTS.md: the gate's ambient magicule and entity power
+    // values come from the API's services. compileOnly keeps it off the shipped
+    // jar (the API is a separate mod at runtime) and off the GameTest runtime,
+    // which does not need it until the glue calling AmbientMagicule /
+    // EntityPowerStats is written.
+    compileOnly 'org.bitwisemadness.infinitedungeonapi:infinite_dungeon_api:1.0.0-alpha.6'
+
+    // JUnit suite: the CI junit check grades it and refuses to pass on an empty
+    // run, so this configuration must stay wired in every derived repo.
     testImplementation platform('org.junit:junit-bom:5.10.2')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
