@@ -71,6 +71,9 @@ public final class SafetyDataReloadListener extends InfiniteDungeonJsonReloadLis
         SafetyDataReducer.Applied applied = SafetyDataReducer.reduce(entries.values(), modPresence());
         ClassificationOverrides.set(applied.overrides());
         SafetyTables.set(applied.lists());
+        // Expansion happens here, where tags are already bound for this
+        // reload, so the spawn path only ever reads plain id sets.
+        SafetyListExpansion.rebuild(applied.lists());
         LOGGER.debug("Loaded {} classification override(s) and {} category list(s) from safety data",
                 applied.overrides().size(), applied.lists().size());
     }

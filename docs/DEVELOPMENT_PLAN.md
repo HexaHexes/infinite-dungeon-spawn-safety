@@ -110,8 +110,11 @@ category, then passive. The rules live in the API
 - Absent values: no stats provider means the requirement is zero (gate passes);
   no ambient provider means the value is `ambientFallback` (default zero, which
   blocks only when a stats provider supplies a positive requirement).
-- The gate is intercepted at the mob spawn finalization stage, so the entity is
-  already built and its attributes are readable.
+- The gate is intercepted through `MobSpawnEvent.PositionCheck`, the hook
+  NeoForge 21.1 actually posts on the natural path - `FinalizeSpawnEvent` fires
+  only for spawners. The spawner posts it after the mob is built and positioned
+  but before it joins the world, so its attributes are readable and a rejected
+  spawn leaves nothing behind.
 
 ## 7. Behavior matrix
 
