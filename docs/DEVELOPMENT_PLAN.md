@@ -126,13 +126,13 @@ category, then passive. The rules live in the API
 
 ## 8. Delivery waves
 
-- Wave S1: config schema, dimension filter, and category toggles.
-- Wave S2: the magicule gate with the deviation band and scale.
-- Wave S3: datapack category lists and classification overrides loading and
-  `/reload`.
-- Wave S4: the natural spawn interception through the API's services.
-- Wave S5: diagnostics (a debug command or log line explaining why a spawn was
-  blocked) and the docs polish.
+- Wave S1 (done): config schema, dimension filter, and category toggles.
+- Wave S2 (done): the magicule gate with the deviation band and scale.
+- Wave S3 (done): datapack category lists and classification overrides loading
+  and `/reload`.
+- Wave S4 (done): the natural spawn interception through the API's services.
+- Wave S5 (done): diagnostics - a debug log line naming the reason and, for the
+  magicule gate, the ambient, required, and stat values - and the docs polish.
 
 Each wave is one feature per PR and one alpha bump.
 
@@ -145,7 +145,8 @@ JUnit (pure logic, no game runtime):
 - gate math: strict rule, deviation band, scale, zero-value no-op, fallback;
 - classification application through the API's rules;
 - list loading through the Minecraft-free reducer: required-mod gating,
-  whole-file replacement per category, and the keyed classification merge.
+  whole-file replacement per category, and the keyed classification merge;
+- diagnostic message wording, including tolerance for missing facts.
 
 GameTest (live server):
 

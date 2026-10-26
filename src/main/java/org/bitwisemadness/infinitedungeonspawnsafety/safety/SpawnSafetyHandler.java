@@ -55,21 +55,24 @@ public final class SpawnSafetyHandler {
         }
         String entityId = entityId(mob);
         SpawnCategory category = MobClassification.categoryOf(mob);
-        if (!config.categoryAllowed(category.name())) {
-            block(event, entityId, dimensionId, GateReason.CATEGORY_DISABLED);
+        String categoryName = category.name();
+        if (!config.categoryAllowed(categoryName)) {
+            block(event, GateDiagnostics.blockMessage(
+                    GateReason.CATEGORY_DISABLED, entityId, dimensionId, categoryName));
             return;
         }
         GateDecision list = listDecision(category, entityId);
         if (!list.allowed()) {
-            block(event, entityId, dimensionId, list.reason());
+            block(event, GateDiagnostics.blockMessage(
+                    list.reason(), entityId, dimensionId, categoryName));
             return;
         }
         double ambient = ambient(level, event, config);
         double stat = statValue(mob, config);
-        GateDecision decision = MagiculeGate.evaluate(
-                config, category.name(), true, ambient, stat);
+        GateDecision decision = MagiculeGate.evaluate(config, categoryName, true, ambient, stat);
         if (!decision.allowed()) {
-            block(event, entityId, dimensionId, decision.reason());
+            block(event, GateDiagnostics.blockMessage(decision.reason(), entityId, dimensionId,
+                    categoryName, ambient, MagiculeGate.requiredMagicule(config, stat), stat));
         }
     }
 
@@ -105,14 +108,15 @@ public final class SpawnSafetyHandler {
         return String.valueOf(BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType()));
     }
 
-    private static void block(MobSpawnEvent.PositionCheck event,
-                              String entityId,
-                              String dimensionId,
-                              GateReason reason) {
+    /**
+     * Rejects the spawn and records why.
+     *
+     * <p>Debug level on purpose: this fires once per blocked attempt, which
+     * would drown the log at info during a natural spawn cycle, and a passing
+     * gate or an untouched spawn logs nothing at all.</p>
+     */
+    private static void block(MobSpawnEvent.PositionCheck event, String message) {
         event.setResult(MobSpawnEvent.PositionCheck.Result.FAIL);
-        // Debug level on purpose: this fires once per blocked attempt, which
-        // would drown the log at info during a natural spawn cycle.
-        LOGGER.debug("Blocked natural spawn of {} in {}: {}",
-                entityId, dimensionId, reason);
+        LOGGER.debug("{}", message);
     }
 }
