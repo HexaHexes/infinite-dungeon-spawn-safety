@@ -15,8 +15,8 @@ other suite dependency: it works in a pack without the dungeon installed.
   every requirement is zero and the gate is a no-op); infinite-dungeon (its
   dimension registers the dungeon magicule curve as an ambient source).
 
-**Test:** `./gradlew runGameTestServer` - `SpawnSafetyGameTests` (3 tests).
-`expectedTests = 3` in `build.gradle` must match the `@GameTest` count.
+**Test:** `./gradlew runGameTestServer` - `SpawnSafetyGameTests` (4 tests).
+`expectedTests = 4` in `build.gradle` must match the `@GameTest` count.
 
 **Gotchas**
 - The gate must never touch non-natural spawns. The allowlist lives in

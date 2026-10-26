@@ -7,10 +7,12 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
+import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.living.MobSpawnEvent;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import org.bitwisemadness.infinitedungeonapi.event.SpawnGateDecisionEvent;
 import org.bitwisemadness.infinitedungeonapi.magicule.AmbientMagicule;
 import org.bitwisemadness.infinitedungeonapi.magicule.MagiculeProvider;
 import org.bitwisemadness.infinitedungeonapi.stats.EntityPowerStatProvider;
@@ -103,6 +105,37 @@ public final class SpawnSafetyGameTests {
         helper.succeed();
     }
 
+    /**
+     * The API's cancellable gate decision reaches a listener before the
+     * rejection lands, and a listener's veto re-allows a spawn the gate would
+     * block: the result stays DEFAULT.
+     */
+    @GameTest(template = "empty")
+    public static void gate_decision_event_can_override(GameTestHelper helper) {
+        Mob sheep = EntityType.SHEEP.create(helper.getLevel());
+        helper.assertTrue(sheep != null, "the sheep must be creatable");
+        positionAtOrigin(helper, sheep);
+
+        EntityPowerStatProvider stats = (entity, kind) ->
+                kind == StatKind.EP ? OptionalDouble.of(100.0) : OptionalDouble.empty();
+        EntityPowerStats.registerProvider(stats);
+
+        GateVeto veto = new GateVeto();
+        NeoForge.EVENT_BUS.register(veto);
+        try {
+            MobSpawnEvent.PositionCheck event = new MobSpawnEvent.PositionCheck(
+                    sheep, helper.getLevel(), MobSpawnType.NATURAL, null);
+            NeoForge.EVENT_BUS.post(event);
+            helper.assertTrue(veto.sawDecision, "the gate must fire the decision event");
+            helper.assertTrue(event.getResult() == MobSpawnEvent.PositionCheck.Result.DEFAULT,
+                    "a pack override must re-allow the blocked spawn");
+        } finally {
+            NeoForge.EVENT_BUS.unregister(veto);
+            EntityPowerStats.removeProvider(stats);
+        }
+        helper.succeed();
+    }
+
     /** Posts the event exactly as the natural spawner would, and reads it back. */
     private static MobSpawnEvent.PositionCheck.Result spawnResult(GameTestHelper helper,
                                                                  Mob mob,
@@ -116,5 +149,17 @@ public final class SpawnSafetyGameTests {
     private static void positionAtOrigin(GameTestHelper helper, Mob mob) {
         BlockPos pos = helper.absolutePos(BlockPos.ZERO);
         mob.moveTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, 0.0F, 0.0F);
+    }
+
+    /** Vets every gate decision, standing in for a pack override. */
+    public static final class GateVeto {
+
+        private volatile boolean sawDecision;
+
+        @SubscribeEvent
+        public void onGateDecision(SpawnGateDecisionEvent event) {
+            sawDecision = true;
+            event.setCanceled(true);
+        }
     }
 }
