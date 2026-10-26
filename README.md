@@ -38,6 +38,22 @@ list, and the gate (`enabled`, `stat`, `deviationPercent`, `attributeScale`,
 `data/<namespace>/infinite_dungeon/safety/` supplies the category lists and
 classification overrides.
 
+## Diagnostics
+
+A blocked spawn explains itself at `debug` level. The line names the entity, the
+dimension, the classification category, the `GateReason`, and - for the magicule
+gate - the ambient value, the requirement it was compared against, and the mob's
+own stat:
+
+```
+Blocked natural spawn: entity=minecraft:sheep dimension=minecraft:overworld category=PASSIVE reason=INSUFFICIENT_MAGICULE ambient=0.00 required=90.00 stat=100.00
+```
+
+Nothing is logged for a passing gate or an untouched spawn, and the line sits at
+`debug` rather than `info`, so the default experience stays quiet. To see it,
+raise the mod's logger (`org.bitwisemadness.infinitedungeonspawnsafety`) to
+`debug` in your log configuration.
+
 ## Credits
 
 Bitwise Madness.
