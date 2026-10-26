@@ -115,6 +115,9 @@ category, then passive. The rules live in the API
   only for spawners. The spawner posts it after the mob is built and positioned
   but before it joins the world, so its attributes are readable and a rejected
   spawn leaves nothing behind.
+- A pack or integration can re-allow a blocked spawn: the handler fires the
+  API's cancellable `SpawnGateDecisionEvent` before rejecting, and a veto
+  leaves the spawn alone.
 
 ## 7. Behavior matrix
 

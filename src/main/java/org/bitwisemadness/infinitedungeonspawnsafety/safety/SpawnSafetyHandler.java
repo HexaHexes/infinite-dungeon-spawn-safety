@@ -7,7 +7,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Mob;
+import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.living.MobSpawnEvent;
+import org.bitwisemadness.infinitedungeonapi.event.SpawnGateDecisionEvent;
 import org.bitwisemadness.infinitedungeonapi.magicule.AmbientMagicule;
 import org.bitwisemadness.infinitedungeonapi.spawn.MobClassification;
 import org.bitwisemadness.infinitedungeonapi.spawn.SpawnCategory;
@@ -29,8 +31,11 @@ import org.slf4j.Logger;
  *
  * <p>The decision order mirrors the plan exactly: spawn type, then the
  * dimension filter, then the category toggle, then the datapack lists, then
- * the magicule gate. Every value comes from the API's services or the config,
- * so with no provider registered the gate is a no-op rather than a guess.</p>
+ * the magicule gate. Before any rejection lands, the API's cancellable
+ * {@link SpawnGateDecisionEvent} is posted so a pack or integration can
+ * override the block; a veto leaves the spawn alone. Every value comes from
+ * the API's services or the config, so with no provider registered the gate is
+ * a no-op rather than a guess.</p>
  */
 public final class SpawnSafetyHandler {
 
@@ -53,26 +58,31 @@ public final class SpawnSafetyHandler {
         if (!DimensionFilter.affects(dimensionId, config)) {
             return;
         }
+        BlockPos position = BlockPos.containing(event.getX(), event.getY(), event.getZ());
         String entityId = entityId(mob);
         SpawnCategory category = MobClassification.categoryOf(mob);
         String categoryName = category.name();
         if (!config.categoryAllowed(categoryName)) {
-            block(event, GateDiagnostics.blockMessage(
-                    GateReason.CATEGORY_DISABLED, entityId, dimensionId, categoryName));
+            block(event, level, mob, category, position, 0.0, 0.0,
+                    GateDiagnostics.blockMessage(
+                            GateReason.CATEGORY_DISABLED, entityId, dimensionId, categoryName));
             return;
         }
         GateDecision list = listDecision(category, entityId);
         if (!list.allowed()) {
-            block(event, GateDiagnostics.blockMessage(
-                    list.reason(), entityId, dimensionId, categoryName));
+            block(event, level, mob, category, position, 0.0, 0.0,
+                    GateDiagnostics.blockMessage(
+                            list.reason(), entityId, dimensionId, categoryName));
             return;
         }
-        double ambient = ambient(level, event, config);
+        double ambient = ambient(level, position, config);
         double stat = statValue(mob, config);
         GateDecision decision = MagiculeGate.evaluate(config, categoryName, true, ambient, stat);
         if (!decision.allowed()) {
-            block(event, GateDiagnostics.blockMessage(decision.reason(), entityId, dimensionId,
-                    categoryName, ambient, MagiculeGate.requiredMagicule(config, stat), stat));
+            block(event, level, mob, category, position, ambient,
+                    MagiculeGate.requiredMagicule(config, stat),
+                    GateDiagnostics.blockMessage(decision.reason(), entityId, dimensionId,
+                            categoryName, ambient, MagiculeGate.requiredMagicule(config, stat), stat));
         }
     }
 
@@ -89,10 +99,9 @@ public final class SpawnSafetyHandler {
 
     /** The ambient magicule at the spawn position, fallback when unanswered. */
     private static double ambient(ServerLevel level,
-                                  MobSpawnEvent.PositionCheck event,
+                                  BlockPos position,
                                   SafetyConfig config) {
-        BlockPos pos = BlockPos.containing(event.getX(), event.getY(), event.getZ());
-        OptionalDouble base = AmbientMagicule.baseAt(level, pos);
+        OptionalDouble base = AmbientMagicule.baseAt(level, position);
         return AmbientRead.resolve(base, AmbientMagicule.modifiers(),
                 config.ambientFallback());
     }
@@ -109,13 +118,31 @@ public final class SpawnSafetyHandler {
     }
 
     /**
-     * Rejects the spawn and records why.
+     * Rejects the spawn, unless a pack override vetoes the block.
      *
-     * <p>Debug level on purpose: this fires once per blocked attempt, which
-     * would drown the log at info during a natural spawn cycle, and a passing
-     * gate or an untouched spawn logs nothing at all.</p>
+     * <p>The API's cancellable {@link SpawnGateDecisionEvent} fires first,
+     * carrying the facts the decision used (the ambient and required values are
+     * zero when the block came from an earlier rule, which never computed
+     * them). A listener that cancels it re-allows the spawn, so the result is
+     * left untouched. Otherwise {@code Result.FAIL} lands and the reason is
+     * recorded at debug level: a passing gate and an untouched spawn log
+     * nothing, so the default experience stays quiet.</p>
      */
-    private static void block(MobSpawnEvent.PositionCheck event, String message) {
+    private static void block(MobSpawnEvent.PositionCheck event,
+                              ServerLevel level,
+                              Mob mob,
+                              SpawnCategory category,
+                              BlockPos position,
+                              double ambient,
+                              double required,
+                              String message) {
+        SpawnGateDecisionEvent decision = new SpawnGateDecisionEvent(
+                level.dimension(), mob, category, position, ambient, required);
+        NeoForge.EVENT_BUS.post(decision);
+        if (decision.isCanceled()) {
+            LOGGER.debug("Pack override re-allowed a spawn: {}", message);
+            return;
+        }
         event.setResult(MobSpawnEvent.PositionCheck.Result.FAIL);
         LOGGER.debug("{}", message);
     }
