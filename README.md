@@ -1,8 +1,7 @@
 # Infinite Dungeon Spawn Safety
 
-Keeps chosen dimensions mostly safe without touching everything: spawns are
-filtered by category and by whether the local ambient magicule can sustain the
-mob.
+Keeps chosen dimensions mostly safe by filtering natural spawns: by category,
+and by whether the local ambient magicule can sustain the mob.
 
 ## What it does
 
@@ -41,8 +40,8 @@ classification overrides.
 ## Diagnostics
 
 A blocked spawn explains itself at `debug` level. The line names the entity, the
-dimension, the classification category, the `GateReason`, and - for the magicule
-gate - the ambient value, the requirement it was compared against, and the mob's
+dimension, the classification category, the `GateReason`, and (for the magicule
+gate) the ambient value, the requirement it was compared against, and the mob's
 own stat:
 
 ```
@@ -50,9 +49,9 @@ Blocked natural spawn: entity=minecraft:sheep dimension=minecraft:overworld cate
 ```
 
 Nothing is logged for a passing gate or an untouched spawn, and the line sits at
-`debug` rather than `info`, so the default experience stays quiet. To see it,
-raise the mod's logger (`org.bitwisemadness.infinitedungeonspawnsafety`) to
-`debug` in your log configuration.
+`debug` rather than `info`, so normal logging stays quiet. To see it, raise the
+mod's logger (`org.bitwisemadness.infinitedungeonspawnsafety`) to `debug` in
+your log configuration.
 
 ## Credits
 
