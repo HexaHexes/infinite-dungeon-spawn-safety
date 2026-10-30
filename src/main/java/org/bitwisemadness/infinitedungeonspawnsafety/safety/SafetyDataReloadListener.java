@@ -33,6 +33,8 @@ public final class SafetyDataReloadListener extends InfiniteDungeonJsonReloadLis
 
     private static final String CLASSIFICATION_FILE = "classification";
 
+    private static final String EXEMPT_FILE = "exempt";
+
     private static final Map<String, SpawnCategory> CATEGORY_FILES = Map.of(
             "hostile", SpawnCategory.HOSTILE,
             "neutral", SpawnCategory.NEUTRAL,
@@ -54,6 +56,9 @@ public final class SafetyDataReloadListener extends InfiniteDungeonJsonReloadLis
             return new SafetyData.Classification(
                     SafetyCodecs.CLASSIFICATION.parse(JsonOps.INSTANCE, json).getOrThrow());
         }
+        if (EXEMPT_FILE.equals(file)) {
+            return SafetyCodecs.EXEMPT.parse(JsonOps.INSTANCE, json).getOrThrow();
+        }
         SpawnCategory category = CATEGORY_FILES.get(file);
         if (category == null) {
             // Anything else in the directory is ignored rather than fatal, so the
@@ -74,8 +79,10 @@ public final class SafetyDataReloadListener extends InfiniteDungeonJsonReloadLis
         // Expansion happens here, where tags are already bound for this
         // reload, so the spawn path only ever reads plain id sets.
         SafetyListExpansion.rebuild(applied.lists());
-        LOGGER.debug("Loaded {} classification override(s) and {} category list(s) from safety data",
-                applied.overrides().size(), applied.lists().size());
+        SafetyListExpansion.rebuildExempt(applied.exempt());
+        SafetyExemptions.set(SafetyListExpansion.exempt());
+        LOGGER.debug("Loaded {} classification override(s), {} category list(s) and {} exemption(s) from safety data",
+                applied.overrides().size(), applied.lists().size(), SafetyExemptions.all().size());
     }
 
     private static Predicate<String> modPresence() {

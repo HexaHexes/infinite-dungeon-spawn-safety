@@ -39,6 +39,29 @@ public final class SafetyCodecs {
             InfiniteDungeonCodecs.REQUIRED_MOD.forGetter(CategoryList::requiredMod)
     ).apply(instance, CategoryList::new));
 
+    /** One exempt file: the entities this module never blocks. */
+    public static final Codec<SafetyData.Exempt> EXEMPT = RecordCodecBuilder.create(instance -> instance.group(
+            InfiniteDungeonCodecs.RESOURCE_REF.listOf()
+                    .fieldOf("entities").forGetter(SafetyData.Exempt::entities),
+            InfiniteDungeonCodecs.REQUIRED_MOD.forGetter(SafetyData.Exempt::requiredMod)
+    ).apply(instance, SafetyData.Exempt::new));
+
+    /** One structure-elevation row: a structure, its radius, its floor. */
+    public static final Codec<StructureElevationRow> STRUCTURE_ROW = RecordCodecBuilder.create(instance -> instance.group(
+            Codec.STRING.fieldOf("structure").forGetter(StructureElevationRow::structure),
+            Codec.DOUBLE.fieldOf("radius").forGetter(StructureElevationRow::radius),
+            Codec.DOUBLE.fieldOf("elevation").forGetter(StructureElevationRow::elevation)
+    ).apply(instance, StructureElevationRow::new));
+
+    /** One structures.json file: the rows, plus the required-mod gate. */
+    public static final Codec<StructureMagiculeReloadListener.StructureFile> STRUCTURE_FILE =
+            RecordCodecBuilder.create(instance -> instance.group(
+                    STRUCTURE_ROW.listOf().fieldOf("structures")
+                            .forGetter(StructureMagiculeReloadListener.StructureFile::rows),
+                    InfiniteDungeonCodecs.REQUIRED_MOD
+                            .forGetter(StructureMagiculeReloadListener.StructureFile::requiredMod)
+            ).apply(instance, StructureMagiculeReloadListener.StructureFile::new));
+
     /** Reads a category name, rejecting anything that is not a category. */
     public static SpawnCategory category(String raw) {
         String value = raw == null ? "" : raw.trim().toUpperCase(Locale.ROOT);

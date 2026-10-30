@@ -18,6 +18,35 @@ and by whether the local ambient magicule can sustain the mob.
 - List precedence is simple: a switched-off category never spawns, a blacklist
   entry always blocks, and a whitelist with entries limits its category to what
   it lists.
+- Exemptions (`exempt.json`): entities the module never blocks, wherever they
+  spawn - showcase mobs like dragons and structure bosses skip every rule this
+  mod applies. Packs ship rows in their own namespace and they union.
+- Structure elevation (`structure_magicule/structures.json`): listed structures
+  raise the ambient magicule of the chunks around their start, so a structure's
+  neighbourhood sustains the EP baseline of the mobs that live there (a dragon
+  cave at 800,000, the Dead King's catacombs at 120,000, ...). Rows accumulate
+  across packs; each row carries the structure, a radius, and the additive
+  floor. Elevation is read-time ambient - chunk generation and world data are
+  never written.
+
+## Datapack reference
+
+`data/<namespace>/infinite_dungeon/safety/`:
+
+```jsonc
+// exempt.json - the module never blocks these entities
+{ "entities": ["iceandfire:fire_dragon", "#iceandfire:dragon_targets"] }
+```
+
+`data/<namespace>/infinite_dungeon/structure_magicule/`:
+
+```jsonc
+// structures.json - ambient floors around structure starts
+{ "structures": [ { "structure": "iceandfire:fire_dragon_cave", "radius": 256.0, "elevation": 800000.0 } ] }
+```
+
+Both support `required_mod` gating, so a pack can ship data for optional
+content that applies only when the mod is present.
 
 ## Dependencies
 

@@ -3,9 +3,11 @@ package org.bitwisemadness.infinitedungeonspawnsafety.safety;
 import java.util.Collection;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Predicate;
 import org.bitwisemadness.infinitedungeonapi.data.RequiredModFilter;
+import org.bitwisemadness.infinitedungeonapi.data.ResourceRef;
 import org.bitwisemadness.infinitedungeonapi.spawn.SpawnCategory;
 
 /**
@@ -30,6 +32,7 @@ public final class SafetyDataReducer {
     public static Applied reduce(Collection<SafetyData> entries, Predicate<String> modPresent) {
         Map<String, SpawnCategory> overrides = new TreeMap<>();
         Map<SpawnCategory, CategoryList> lists = new EnumMap<>(SpawnCategory.class);
+        Set<ResourceRef> exempt = new java.util.LinkedHashSet<>();
         if (entries != null) {
             for (SafetyData data : entries) {
                 if (data instanceof SafetyData.Classification classification) {
@@ -42,10 +45,18 @@ public final class SafetyDataReducer {
                         // hostile.json supersedes another's rather than merging.
                         lists.put(category.category(), category.list());
                     }
+                } else if (data instanceof SafetyData.Exempt exemptFile) {
+                    if (RequiredModFilter.allowed(exemptFile.requiredMod(), modPresent)) {
+                        // Union: every pack contributes its own showcase mobs, and
+                        // no pack can un-exempt another's through priority. Raw refs
+                        // stay raw - tags expand at the reload boundary, exactly
+                        // like the category lists.
+                        exempt.addAll(exemptFile.entities());
+                    }
                 }
             }
         }
-        return new Applied(overrides, lists);
+        return new Applied(overrides, lists, Set.copyOf(exempt));
     }
 
     /**
@@ -53,8 +64,11 @@ public final class SafetyDataReducer {
      *
      * @param overrides entity type id to category, for the API's classification holder
      * @param lists     per-category spawn lists
+     * @param exempt    raw entity ids never blocked by this module (tags are
+     *                  expanded at the reload boundary, like the category lists)
      */
     public record Applied(Map<String, SpawnCategory> overrides,
-                          Map<SpawnCategory, CategoryList> lists) {
+                          Map<SpawnCategory, CategoryList> lists,
+                          Set<ResourceRef> exempt) {
     }
 }

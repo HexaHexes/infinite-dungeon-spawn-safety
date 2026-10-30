@@ -62,6 +62,12 @@ public final class SpawnSafetyHandler {
         String entityId = entityId(mob);
         SpawnCategory category = MobClassification.categoryOf(mob);
         String categoryName = category.name();
+        if (SafetyExemptions.contains(entityId)) {
+            // exempt.json: the module never touches this entity - no category
+            // toggle, list, dimension filter or magicule requirement applies.
+            // A quiet allow, exactly like a passing gate.
+            return;
+        }
         if (!config.categoryAllowed(categoryName)) {
             block(event, level, mob, category, position, 0.0, 0.0,
                     GateDiagnostics.blockMessage(
@@ -102,8 +108,14 @@ public final class SpawnSafetyHandler {
                                   BlockPos position,
                                   SafetyConfig config) {
         OptionalDouble base = AmbientMagicule.baseAt(level, position);
-        return AmbientRead.resolve(base, AmbientMagicule.modifiers(),
-                config.ambientFallback());
+        // Position-aware: registered modifiers whose scope contains the
+        // position participate, plus the structure-elevation modifiers the
+        // loaded rows produce for nearby structure starts.
+        java.util.List<org.bitwisemadness.infinitedungeonapi.magicule.ConcentrationModifier> modifiers =
+                new java.util.ArrayList<>(AmbientMagicule.modifiers());
+        modifiers.addAll(StructureElevationSource.nearby(level, position));
+        return AmbientRead.resolveAt(base, modifiers, config.ambientFallback(),
+                position.getX(), position.getY(), position.getZ());
     }
 
     /** The mob's own gate stat value; zero when no provider speaks for it. */

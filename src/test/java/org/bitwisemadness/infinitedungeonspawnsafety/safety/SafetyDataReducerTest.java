@@ -85,4 +85,36 @@ class SafetyDataReducerTest {
         assertTrue(applied.lists().containsKey(SpawnCategory.PASSIVE));
         assertFalse(applied.lists().get(SpawnCategory.PASSIVE).restrictsToWhitelist());
     }
+
+    @Test
+    void exemptFilesUnionAcrossPacks() {
+        SafetyDataReducer.Applied applied = SafetyDataReducer.reduce(List.of(
+                new SafetyData.Exempt(List.of(ResourceRef.parse("iceandfire:fire_dragon")),
+                        Optional.empty()),
+                new SafetyData.Exempt(List.of(ResourceRef.parse("irons_spellbooks:dead_king")),
+                        Optional.empty())),
+                mod -> true);
+
+        assertEquals(2, applied.exempt().size());
+    }
+
+    @Test
+    void requiredModAbsentSkipsTheExemptFile() {
+        SafetyDataReducer.Applied applied = SafetyDataReducer.reduce(List.of(
+                new SafetyData.Exempt(List.of(ResourceRef.parse("iceandfire:hydra")),
+                        Optional.of("iceandfire"))),
+                mod -> false);
+
+        assertTrue(applied.exempt().isEmpty());
+    }
+
+    @Test
+    void exemptAcceptsTagReferences() {
+        SafetyDataReducer.Applied applied = SafetyDataReducer.reduce(List.of(
+                new SafetyData.Exempt(List.of(ResourceRef.parse("#iceandfire:dragon_targets")),
+                        Optional.empty())),
+                mod -> true);
+
+        assertEquals(1, applied.exempt().size());
+    }
 }

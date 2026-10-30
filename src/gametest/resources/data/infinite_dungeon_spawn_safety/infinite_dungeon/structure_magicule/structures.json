@@ -1,0 +1,9 @@
+{
+  "structures": [
+    {
+      "structure": "minecraft:ruined_portal",
+      "radius": 64.0,
+      "elevation": 500.0
+    }
+  ]
+}

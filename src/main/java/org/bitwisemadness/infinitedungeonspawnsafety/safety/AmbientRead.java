@@ -37,4 +37,22 @@ public final class AmbientRead {
         return ConcentrationModifier.applyAll(
                 base.getAsDouble(), modifiers == null ? List.of() : modifiers);
     }
+
+    /**
+     * Resolves one ambient reading at a position, so scoped modifiers - such as
+     * a structure's elevation - stay local to their neighbourhood. The
+     * boundary policy is identical to {@link #resolve}: modifiers shape what a
+     * provider answered, and the configured fallback stands in only when no
+     * provider answers at all, untouched by any modifier.
+     */
+    public static double resolveAt(OptionalDouble base,
+                                   Collection<ConcentrationModifier> modifiers,
+                                   double fallback,
+                                   int x, int y, int z) {
+        if (base == null || base.isEmpty()) {
+            return Math.max(0.0, fallback);
+        }
+        return ConcentrationModifier.applyAllAt(
+                base.getAsDouble(), modifiers == null ? List.of() : modifiers, x, y, z);
+    }
 }

@@ -68,6 +68,25 @@ public final class SafetyListExpansion {
     /** Clears the cache; used on reload teardown and in tests. */
     public static void clear() {
         expansions = Map.of();
+        exempt = Set.of();
+    }
+
+    private static volatile Set<String> exempt = Set.of();
+
+    /** Expands the unioned exemption refs into plain ids; replaces the cache. */
+    public static void rebuildExempt(Collection<ResourceRef> refs) {
+        if (refs == null || refs.isEmpty()) {
+            exempt = Set.of();
+            return;
+        }
+        Set<String> ids = new HashSet<>(expand(List.copyOf(refs)));
+        ids.remove(null);
+        exempt = Collections.unmodifiableSet(ids);
+    }
+
+    /** The expanded exemption ids; empty when no pack shipped any. */
+    public static Set<String> exempt() {
+        return exempt;
     }
 
     private static Set<String> expand(List<ResourceRef> refs) {
