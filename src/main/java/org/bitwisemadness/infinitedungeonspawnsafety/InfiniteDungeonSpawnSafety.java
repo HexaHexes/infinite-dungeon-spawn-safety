@@ -8,6 +8,7 @@ import net.neoforged.neoforge.common.NeoForge;
 import org.bitwisemadness.infinitedungeonspawnsafety.safety.SafetyConfigs;
 import org.bitwisemadness.infinitedungeonspawnsafety.safety.SafetyDataReloadListener;
 import org.bitwisemadness.infinitedungeonspawnsafety.safety.SpawnSafetyHandler;
+import org.bitwisemadness.infinitedungeonspawnsafety.safety.StructureMagiculeReloadListener;
 import org.slf4j.Logger;
 
 /**
@@ -30,6 +31,9 @@ public final class InfiniteDungeonSpawnSafety {
         // Datapack lists and classification overrides load through the API's
         // reload machinery on server start and on every /reload.
         NeoForge.EVENT_BUS.addListener(SafetyDataReloadListener::onAddReloadListeners);
+        // Structure-elevation rows (data/<ns>/infinite_dungeon/structure_magicule/)
+        // reload the same way; they lift the ambient around listed structures.
+        NeoForge.EVENT_BUS.addListener(StructureMagiculeReloadListener::onAddReloadListeners);
         // The natural-spawn interception itself. Only NATURAL spawns are ever
         // gated; everything else is ignored at the allowlist.
         NeoForge.EVENT_BUS.addListener(SpawnSafetyHandler::onPositionCheck);

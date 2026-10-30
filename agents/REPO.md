@@ -21,8 +21,8 @@ other suite dependency: it works in a pack without the dungeon installed.
   every requirement is zero and the gate is a no-op); infinite-dungeon (its
   dimension registers the dungeon magicule curve as an ambient source).
 
-**Test:** `./gradlew runGameTestServer` - `SpawnSafetyGameTests` (4 tests).
-`expectedTests = 4` in `build.gradle` must match the `@GameTest` count.
+**Test:** `./gradlew runGameTestServer` - `SpawnSafetyGameTests` (6 tests).
+`expectedTests = 6` in `build.gradle` must match the `@GameTest` count.
 
 **Remote:** `github.com/HexaHexes/infinite-dungeon-spawn-safety` (public, default
 branch `main`).

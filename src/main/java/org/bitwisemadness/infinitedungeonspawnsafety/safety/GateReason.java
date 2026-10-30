@@ -18,6 +18,9 @@ public enum GateReason {
     /** The mob is on its category's datapack blacklist. */
     BLACKLISTED,
 
+    /** The mob is exempt in a datapack exempt.json, so this module never blocks it. */
+    EXEMPTED,
+
     /** The mob falls outside a non-empty datapack whitelist. */
     OUTSIDE_WHITELIST,
 

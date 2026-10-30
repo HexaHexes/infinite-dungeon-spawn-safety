@@ -19,6 +19,9 @@ import org.bitwisemadness.infinitedungeonapi.stats.EntityPowerStatProvider;
 import org.bitwisemadness.infinitedungeonapi.stats.EntityPowerStats;
 import org.bitwisemadness.infinitedungeonapi.stats.StatKind;
 import org.bitwisemadness.infinitedungeonspawnsafety.InfiniteDungeonSpawnSafety;
+import org.bitwisemadness.infinitedungeonspawnsafety.safety.SafetyExemptions;
+import org.bitwisemadness.infinitedungeonspawnsafety.safety.StructureElevation;
+import org.bitwisemadness.infinitedungeonspawnsafety.safety.StructureElevationRow;
 
 /**
  * Live-server proof of the natural-spawn gate.
@@ -133,6 +136,45 @@ public final class SpawnSafetyGameTests {
             NeoForge.EVENT_BUS.unregister(veto);
             EntityPowerStats.removeProvider(stats);
         }
+        helper.succeed();
+    }
+
+    /**
+     * An exempt entity's natural spawn is never blocked by this module: the
+     * fixture makes the zombie exempt, the shipped config has hostiles off, so
+     * without the exemption the category rule would reject the spawn before
+     * any magicule is even read.
+     */
+    @GameTest(template = "empty")
+    public static void exempt_entities_are_never_blocked(GameTestHelper helper) {
+        helper.assertTrue(SafetyExemptions.contains("minecraft:zombie"),
+                "the datapack fixture must exempt the zombie");
+        Mob zombie = EntityType.ZOMBIE.create(helper.getLevel());
+        helper.assertTrue(zombie != null, "the zombie must be creatable");
+        positionAtOrigin(helper, zombie);
+
+        helper.assertTrue(
+                spawnResult(helper, zombie, MobSpawnType.NATURAL)
+                        == MobSpawnEvent.PositionCheck.Result.DEFAULT,
+                "an exempt entity must never be blocked");
+        helper.succeed();
+    }
+
+    /**
+     * The structure-elevation datapack loads into the table: the fixture's
+     * ruined-portal row arrives with its radius and floor, the scan bound
+     * follows the widest row, and the pure modifier construction from those
+     * facts is covered by the unit suite.
+     */
+    @GameTest(template = "empty")
+    public static void structure_elevation_datapack_loads(GameTestHelper helper) {
+        StructureElevationRow row = StructureElevation.all().get("minecraft:ruined_portal") == null
+                ? null
+                : StructureElevation.all().get("minecraft:ruined_portal").get(0);
+        helper.assertTrue(row != null, "the fixture row must load");
+        helper.assertTrue(row.radius() == 64.0, "the radius must survive parsing");
+        helper.assertTrue(row.elevation() == 500.0, "the elevation must survive parsing");
+        helper.assertTrue(StructureElevation.maxRadius() == 64.0, "the scan bound must follow the rows");
         helper.succeed();
     }
 
