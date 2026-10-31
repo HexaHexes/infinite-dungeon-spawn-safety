@@ -1,31 +1,30 @@
 package org.bitwisemadness.infinitedungeonspawnsafety.safety;
 
 /**
- * One structure-elevation row: a structure raises the ambient magicule of the
- * chunks around its start by an amount, within a radius.
+ * One structure-elevation row: a structure raises the magicule concentration of
+ * its surroundings to at least {@code elevation}, the EP baseline of the mobs
+ * related to it.
+ *
+ * <p>The radius is not carried here: it scales with the elevation (see
+ * {@link StructureElevationLogic#radiusFor(double)}), so a structure with a
+ * 350,000 baseline reaches wider than one with 20,000. Unknown keys in the
+ * datapack file - an old {@code radius}, for example - are ignored by the
+ * codec.</p>
  *
  * <p>Pure by construction (strings and primitives) so the row list is
- * unit-testable without a game runtime. The elevation is <em>additive</em> -
- * the API's phase model sums additive modifiers before multiplicative ones, so
- * a row of elevation 800000 guarantees the ambient around that structure is at
- * least 800000, which is the pack rule: a structure's neighbourhood sustains
- * the EP baseline of the mobs related to it.</p>
+ * unit-testable without a game runtime.</p>
  *
  * @param structure the structure's registry id, e.g. {@code iceandfire:fire_dragon_cave}
- * @param radius    the sphere radius in blocks around the structure's start
- * @param elevation the additive magicule floor inside that sphere
+ * @param elevation the baseline the surroundings must reach
  */
-public record StructureElevationRow(String structure, double radius, double elevation) {
+public record StructureElevationRow(String structure, double elevation) {
 
     public StructureElevationRow {
         if (structure == null || structure.isBlank()) {
             throw new IllegalArgumentException("structure must not be blank");
         }
-        if (!(radius >= 0.0) || Double.isInfinite(radius)) {
-            throw new IllegalArgumentException("radius must be finite and non-negative, got " + radius);
-        }
-        if (Double.isNaN(elevation) || Double.isInfinite(elevation)) {
-            throw new IllegalArgumentException("elevation must be finite, got " + elevation);
+        if (Double.isNaN(elevation) || Double.isInfinite(elevation) || elevation < 0.0) {
+            throw new IllegalArgumentException("elevation must be finite and non-negative, got " + elevation);
         }
     }
 }
