@@ -46,10 +46,13 @@ public final class SafetyCodecs {
             InfiniteDungeonCodecs.REQUIRED_MOD.forGetter(SafetyData.Exempt::requiredMod)
     ).apply(instance, SafetyData.Exempt::new));
 
-    /** One structure-elevation row: a structure, its radius, its floor. */
+    /**
+     * One structure-elevation row: a structure and its baseline. The reach is
+     * derived from the baseline (see {@code StructureElevationLogic}), so an old
+     * {@code radius} key in a pack's file is simply ignored.
+     */
     public static final Codec<StructureElevationRow> STRUCTURE_ROW = RecordCodecBuilder.create(instance -> instance.group(
             Codec.STRING.fieldOf("structure").forGetter(StructureElevationRow::structure),
-            Codec.DOUBLE.fieldOf("radius").forGetter(StructureElevationRow::radius),
             Codec.DOUBLE.fieldOf("elevation").forGetter(StructureElevationRow::elevation)
     ).apply(instance, StructureElevationRow::new));
 
