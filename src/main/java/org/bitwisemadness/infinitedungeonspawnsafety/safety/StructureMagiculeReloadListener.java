@@ -12,7 +12,6 @@ import java.util.Optional;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
-import org.bitwisemadness.infinitedungeonapi.data.InfiniteDungeonCodecs;
 import org.bitwisemadness.infinitedungeonapi.data.InfiniteDungeonJsonReloadListener;
 import org.slf4j.Logger;
 

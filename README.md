@@ -22,12 +22,15 @@ and by whether the local ambient magicule can sustain the mob.
   spawn - showcase mobs like dragons and structure bosses skip every rule this
   mod applies. Packs ship rows in their own namespace and they union.
 - Structure elevation (`structure_magicule/structures.json`): listed structures
-  raise the ambient magicule of the chunks around their start, so a structure's
-  neighbourhood sustains the EP baseline of the mobs that live there (a dragon
-  cave at 800,000, the Dead King's catacombs at 120,000, ...). Rows accumulate
-  across packs; each row carries the structure, a radius, and the additive
-  floor. Elevation is read-time ambient - chunk generation and world data are
-  never written.
+  **raise the stored magicule concentration of their surrounding chunks** - the
+  write lands in each chunk's Tensura storage as it loads (ceiling included, so
+  regeneration holds it there), which means Tensura's own reads, the xaero
+  concentration overlay and this mod's gate all see the elevated value. A
+  structure's neighbourhood therefore sustains the EP baseline of the mobs that
+  live there (a dragon cave at 800,000, the Dead King's catacombs at 120,000,
+  ...). Rows accumulate across packs; each row carries the structure, a radius
+  and the floor. Writes only ever raise ("equal or higher"), and are skipped
+  when Tensura is absent.
 
 ## Datapack reference
 
@@ -41,7 +44,7 @@ and by whether the local ambient magicule can sustain the mob.
 `data/<namespace>/infinite_dungeon/structure_magicule/`:
 
 ```jsonc
-// structures.json - ambient floors around structure starts
+// structures.json - stored-concentration floors around structure pieces
 { "structures": [ { "structure": "iceandfire:fire_dragon_cave", "radius": 256.0, "elevation": 800000.0 } ] }
 ```
 

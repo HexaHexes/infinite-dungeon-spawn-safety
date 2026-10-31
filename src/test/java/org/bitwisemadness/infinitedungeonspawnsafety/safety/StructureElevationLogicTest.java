@@ -5,76 +5,63 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Map;
-import org.bitwisemadness.infinitedungeonapi.magicule.ConcentrationModifier;
-import org.bitwisemadness.infinitedungeonapi.magicule.RadiusScope;
 import org.junit.jupiter.api.Test;
 
 class StructureElevationLogicTest {
 
+    private static Map<String, List<StructureElevationRow>> rows(String structure, double radius, double elevation) {
+        return Map.of(structure, List.of(new StructureElevationRow(structure, radius, elevation)));
+    }
+
     @Test
     void emptyRowsYieldNothing() {
-        assertTrue(StructureElevationLogic.modifiersFor(Map.of(), Map.of()).isEmpty());
+        assertTrue(StructureElevationLogic.floorFor(Map.of(), Map.of(), 0, 0).isEmpty());
         assertEquals(0.0, StructureElevationLogic.maxRadius(Map.of()));
     }
 
     @Test
-    void aStartWithinRadiusLifts() {
-        Map<String, List<StructureElevationRow>> rows = Map.of(
-                "iceandfire:fire_dragon_cave", List.of(new StructureElevationRow(
-                        "iceandfire:fire_dragon_cave", 256.0, 800000.0)));
-        Map<String, List<StructureElevationLogic.Start>> starts = Map.of(
-                "iceandfire:fire_dragon_cave",
-                List.of(new StructureElevationLogic.Start(16, 16, 64, 100.0)));
+    void aPieceWithinRadiusSetsTheFloor() {
+        Map<String, List<StructureElevationRow>> rows =
+                rows("iceandfire:fire_dragon_cave", 256.0, 800000.0);
+        Map<String, List<StructureElevationLogic.Piece>> pieces = Map.of(
+                "iceandfire:fire_dragon_cave", List.of(new StructureElevationLogic.Piece(16, 16)));
 
-        List<ConcentrationModifier> modifiers = StructureElevationLogic.modifiersFor(rows, starts);
-
-        assertEquals(1, modifiers.size());
-        ConcentrationModifier modifier = modifiers.get(0);
-        assertEquals(800000.0, modifier.amount());
-        assertTrue(!modifier.multiplicative());
-        RadiusScope scope = modifier.scope();
-        assertEquals(16, scope.x());
-        assertEquals(16, scope.z());
-        assertEquals(64, scope.y());
-        assertEquals(256.0, scope.radius());
-        assertTrue(scope.contains(16, 64, 16), "the centre is inside");
-        assertTrue(scope.contains(16 + 256, 64, 16), "the boundary counts as inside");
+        assertEquals(800000.0,
+                StructureElevationLogic.floorFor(rows, pieces, 16, 16).getAsDouble());
+        // Boundary counts as inside, matching RadiusScope's contract.
+        assertEquals(800000.0,
+                StructureElevationLogic.floorFor(rows, pieces, 16 + 256, 16).getAsDouble());
     }
 
     @Test
-    void aStartBeyondTheRadiusDoesNotLift() {
-        Map<String, List<StructureElevationRow>> rows = Map.of(
-                "tensura:catacombs", List.of(new StructureElevationRow(
-                        "tensura:catacombs", 64.0, 120000.0)));
-        Map<String, List<StructureElevationLogic.Start>> starts = Map.of(
-                "tensura:catacombs",
-                List.of(new StructureElevationLogic.Start(0, 0, 0, 65.0)));
+    void aPieceBeyondTheRadiusSetsNothing() {
+        Map<String, List<StructureElevationRow>> rows =
+                rows("tensura:catacombs", 64.0, 120000.0);
+        Map<String, List<StructureElevationLogic.Piece>> pieces = Map.of(
+                "tensura:catacombs", List.of(new StructureElevationLogic.Piece(0, 0)));
 
-        assertTrue(StructureElevationLogic.modifiersFor(rows, starts).isEmpty());
+        assertTrue(StructureElevationLogic.floorFor(rows, pieces, 65, 0).isEmpty());
     }
 
     @Test
-    void aStructureWithoutStartsContributesNothing() {
-        Map<String, List<StructureElevationRow>> rows = Map.of(
-                "irons_spellbooks:pyromancer_tower", List.of(new StructureElevationRow(
-                        "irons_spellbooks:pyromancer_tower", 128.0, 12000.0)));
+    void structuresWithoutPiecesSetNothing() {
+        Map<String, List<StructureElevationRow>> rows =
+                rows("irons_spellbooks:pyromancer_tower", 128.0, 12000.0);
 
-        assertTrue(StructureElevationLogic.modifiersFor(rows, Map.of()).isEmpty());
+        assertTrue(StructureElevationLogic.floorFor(rows, Map.of(), 0, 0).isEmpty());
     }
 
     @Test
-    void multipleRowsForOneStructureAllApply() {
+    void theLargestCoveringRowWins() {
         Map<String, List<StructureElevationRow>> rows = Map.of(
                 "iceandfire:dragon_cave", List.of(
                         new StructureElevationRow("iceandfire:dragon_cave", 256.0, 800000.0),
                         new StructureElevationRow("iceandfire:dragon_cave", 96.0, 100000.0)));
-        Map<String, List<StructureElevationLogic.Start>> starts = Map.of(
-                "iceandfire:dragon_cave",
-                List.of(new StructureElevationLogic.Start(0, 0, 0, 8.0)));
+        Map<String, List<StructureElevationLogic.Piece>> pieces = Map.of(
+                "iceandfire:dragon_cave", List.of(new StructureElevationLogic.Piece(0, 0)));
 
-        List<ConcentrationModifier> modifiers = StructureElevationLogic.modifiersFor(rows, starts);
-
-        assertEquals(2, modifiers.size());
+        assertEquals(800000.0,
+                StructureElevationLogic.floorFor(rows, pieces, 8, 0).getAsDouble());
     }
 
     @Test

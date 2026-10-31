@@ -1,24 +1,23 @@
 package org.bitwisemadness.infinitedungeonspawnsafety.safety;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import org.bitwisemadness.infinitedungeonapi.magicule.ConcentrationModifier;
-import org.bitwisemadness.infinitedungeonapi.magicule.RadiusScope;
+import java.util.OptionalDouble;
 
 /**
- * The structure-elevation rules as pure logic.
+ * The structure-elevation rules as pure logic: how much magicule a chunk
+ * should carry because structures have pieces near it.
  *
- * <p>Given the loaded rows and the structure starts found near a queried
- * position, this decides which API {@link ConcentrationModifier}s apply and
- * where: one additive, position-scoped modifier per (row, start) pair whose
- * start lies within the row's radius. The scope centres on the structure's
- * start chunk with the queried position's Y, so the model is deliberately
- * horizontal - "the chunks surrounding a structure" - and depth never excludes
- * a spawn at the same X/Z.</p>
+ * <p>Pack rule: a structure's surrounding chunks carry at least the magicule
+ * baseline of the mobs related to that structure, so the rule's value for one
+ * chunk is the largest elevation of any row whose radius covers it. The write
+ * itself happens in the Minecraft boundary (see
+ * {@code TensuraChunkMagiculeBridge}), which sets the chunk's stored
+ * concentration to the higher of its current value and this floor - "equal or
+ * higher", exactly as the rule reads.</p>
  *
- * <p>Boundary included, matching {@link RadiusScope#contains}: a start exactly
- * radius blocks away still contributes.</p>
+ * <p>Pure by construction: strings, primitives and
+ * {@link StructureElevationRow} records only.</p>
  */
 public final class StructureElevationLogic {
 
@@ -26,49 +25,52 @@ public final class StructureElevationLogic {
     }
 
     /**
-     * One structure start near the query, as pure facts.
+     * One structure piece near the queried chunk, as pure facts.
      *
-     * @param x        the start chunk centre's world X
-     * @param z        the start chunk centre's world Z
-     * @param y        the vertical anchor for the sphere (the queried Y)
-     * @param distance the horizontal distance from the query to the start
+     * @param x the piece chunk centre's world X
+     * @param z the piece chunk centre's world Z
      */
-    public record Start(int x, int z, int y, double distance) {
+    public record Piece(int x, int z) {
     }
 
     /**
-     * Builds the modifiers for one query.
+     * The floor one chunk should carry: the largest elevation among rows whose
+     * radius covers it from any known piece of their structure.
      *
-     * @param rows             the loaded elevation rows
-     * @param startsByStructure nearby starts per structure id
+     * @param rows        the loaded elevation rows, grouped by structure id
+     * @param piecesByStructure known piece centres per structure id
+     * @param chunkX      the queried chunk's centre X
+     * @param chunkZ      the queried chunk's centre Z
      */
-    public static List<ConcentrationModifier> modifiersFor(
-            Map<String, List<StructureElevationRow>> rows,
-            Map<String, List<Start>> startsByStructure) {
-        if (rows == null || rows.isEmpty() || startsByStructure == null || startsByStructure.isEmpty()) {
-            return List.of();
+    public static OptionalDouble floorFor(Map<String, List<StructureElevationRow>> rows,
+                                          Map<String, List<Piece>> piecesByStructure,
+                                          double chunkX, double chunkZ) {
+        if (rows == null || rows.isEmpty() || piecesByStructure == null || piecesByStructure.isEmpty()) {
+            return OptionalDouble.empty();
         }
-        List<ConcentrationModifier> modifiers = new ArrayList<>();
+        double best = Double.NaN;
         for (Map.Entry<String, List<StructureElevationRow>> entry : rows.entrySet()) {
-            List<Start> starts = startsByStructure.get(entry.getKey());
-            if (starts == null) {
+            List<Piece> pieces = piecesByStructure.get(entry.getKey());
+            if (pieces == null) {
                 continue;
             }
             for (StructureElevationRow row : entry.getValue()) {
-                for (Start start : starts) {
-                    if (start.distance() <= row.radius()) {
-                        modifiers.add(ConcentrationModifier.additive(row.elevation(),
-                                RadiusScope.around(start.x(), start.y(), start.z(), row.radius())));
+                for (Piece piece : pieces) {
+                    double dx = piece.x() - chunkX;
+                    double dz = piece.z() - chunkZ;
+                    if (dx * dx + dz * dz <= row.radius() * row.radius()
+                            && (Double.isNaN(best) || row.elevation() > best)) {
+                        best = row.elevation();
                     }
                 }
             }
         }
-        return List.copyOf(modifiers);
+        return Double.isNaN(best) ? OptionalDouble.empty() : OptionalDouble.of(best);
     }
 
     /**
-     * The furthest radius any row reaches, or zero when no rows ship - the
-     * scan bound for the MC side, so an empty table costs one map lookup.
+     * The furthest radius any row reaches, or zero when no rows ship - the scan
+     * bound for the Minecraft side, so an empty table costs one map lookup.
      */
     public static double maxRadius(Map<String, List<StructureElevationRow>> rows) {
         if (rows == null || rows.isEmpty()) {
