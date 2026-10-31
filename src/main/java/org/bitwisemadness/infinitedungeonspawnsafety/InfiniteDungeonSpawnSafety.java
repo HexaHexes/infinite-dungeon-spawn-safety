@@ -8,6 +8,7 @@ import net.neoforged.neoforge.common.NeoForge;
 import org.bitwisemadness.infinitedungeonspawnsafety.safety.SafetyConfigs;
 import org.bitwisemadness.infinitedungeonspawnsafety.safety.SafetyDataReloadListener;
 import org.bitwisemadness.infinitedungeonspawnsafety.safety.SpawnSafetyHandler;
+import org.bitwisemadness.infinitedungeonspawnsafety.safety.StructureElevationSource;
 import org.bitwisemadness.infinitedungeonspawnsafety.safety.StructureMagiculeReloadListener;
 import org.slf4j.Logger;
 
@@ -34,6 +35,9 @@ public final class InfiniteDungeonSpawnSafety {
         // Structure-elevation rows (data/<ns>/infinite_dungeon/structure_magicule/)
         // reload the same way; they lift the ambient around listed structures.
         NeoForge.EVENT_BUS.addListener(StructureMagiculeReloadListener::onAddReloadListeners);
+        // Structure floors land in the chunks' Tensura storage as they load, so
+        // every consumer reads one truth (see StructureElevationSource).
+        NeoForge.EVENT_BUS.addListener(StructureElevationSource::onChunkLoad);
         // The natural-spawn interception itself. Only NATURAL spawns are ever
         // gated; everything else is ignored at the allowlist.
         NeoForge.EVENT_BUS.addListener(SpawnSafetyHandler::onPositionCheck);

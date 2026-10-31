@@ -107,15 +107,11 @@ public final class SpawnSafetyHandler {
     private static double ambient(ServerLevel level,
                                   BlockPos position,
                                   SafetyConfig config) {
+        // Structure floors are not simulated here: they are written into the
+        // chunks' Tensura storage on load (StructureElevationSource), so the
+        // provider answers with the real, elevated concentration.
         OptionalDouble base = AmbientMagicule.baseAt(level, position);
-        // Position-aware: registered modifiers whose scope contains the
-        // position participate, plus the structure-elevation modifiers the
-        // loaded rows produce for nearby structure starts.
-        java.util.List<org.bitwisemadness.infinitedungeonapi.magicule.ConcentrationModifier> modifiers =
-                new java.util.ArrayList<>(AmbientMagicule.modifiers());
-        modifiers.addAll(StructureElevationSource.nearby(level, position));
-        return AmbientRead.resolveAt(base, modifiers, config.ambientFallback(),
-                position.getX(), position.getY(), position.getZ());
+        return AmbientRead.resolve(base, AmbientMagicule.modifiers(), config.ambientFallback());
     }
 
     /** The mob's own gate stat value; zero when no provider speaks for it. */
