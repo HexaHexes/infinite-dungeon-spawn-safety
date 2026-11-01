@@ -46,18 +46,29 @@ public final class SpawnSafetyHandler {
 
     /** One spawn's position check, on the server event bus. */
     public static void onPositionCheck(MobSpawnEvent.PositionCheck event) {
-        if (!MobClassification.isGatedSpawn(event.getSpawnType())) {
-            return;
-        }
-        Mob mob = event.getEntity();
-        SafetyConfig config = SafetyConfigs.current();
         // The event always comes from a ServerLevel; the accessor is a cast
         // away from it, and the ambient provider needs the level proper.
         ServerLevel level = event.getLevel().getLevel();
         String dimensionId = level.dimension().location().toString();
-        if (!DimensionFilter.affects(dimensionId, config)) {
+        if (!MobClassification.isGatedSpawn(event.getSpawnType())) {
+            // Trace, not debug: this fires for every spawner/structure/command
+            // attempt server-wide (issue #65's volume rule).
+            LOGGER.trace("{}", GateDiagnostics.ignoredMessage(
+                    dimensionId, event.getSpawnType().name(), "spawn-type-not-gated"));
             return;
         }
+        SafetyConfig config = SafetyConfigs.current();
+        if (!config.enabled()) {
+            LOGGER.trace("{}", GateDiagnostics.ignoredMessage(
+                    dimensionId, event.getSpawnType().name(), "module-disabled"));
+            return;
+        }
+        if (!DimensionFilter.affects(dimensionId, config)) {
+            LOGGER.trace("{}", GateDiagnostics.ignoredMessage(
+                    dimensionId, event.getSpawnType().name(), "dimension-not-affected"));
+            return;
+        }
+        Mob mob = event.getEntity();
         BlockPos position = BlockPos.containing(event.getX(), event.getY(), event.getZ());
         String entityId = entityId(mob);
         SpawnCategory category = MobClassification.categoryOf(mob);
@@ -65,31 +76,38 @@ public final class SpawnSafetyHandler {
         if (SafetyExemptions.contains(entityId)) {
             // exempt.json: the module never touches this entity - no category
             // toggle, list, dimension filter or magicule requirement applies.
-            // A quiet allow, exactly like a passing gate.
+            LOGGER.trace("{}", GateDiagnostics.ignoredMessage(
+                    dimensionId, event.getSpawnType().name(), "entity-exempt"));
             return;
         }
         if (!config.categoryAllowed(categoryName)) {
-            block(event, level, mob, category, position, 0.0, 0.0,
+            block(event, level, mob, category, position, null, 0.0,
                     GateDiagnostics.blockMessage(
                             GateReason.CATEGORY_DISABLED, entityId, dimensionId, categoryName));
             return;
         }
         GateDecision list = listDecision(category, entityId);
         if (!list.allowed()) {
-            block(event, level, mob, category, position, 0.0, 0.0,
+            block(event, level, mob, category, position, null, 0.0,
                     GateDiagnostics.blockMessage(
                             list.reason(), entityId, dimensionId, categoryName));
             return;
         }
-        double ambient = ambient(level, position, config);
+        AmbientRead.Reading ambient = ambient(level, position, config);
         double stat = statValue(mob, config);
-        GateDecision decision = MagiculeGate.evaluate(config, categoryName, true, ambient, stat);
+        double required = MagiculeGate.requiredMagicule(config, stat);
+        GateDecision decision = MagiculeGate.evaluate(config, categoryName, true, ambient.value(), stat);
         if (!decision.allowed()) {
-            block(event, level, mob, category, position, ambient,
-                    MagiculeGate.requiredMagicule(config, stat),
+            block(event, level, mob, category, position, ambient, required,
                     GateDiagnostics.blockMessage(decision.reason(), entityId, dimensionId,
-                            categoryName, ambient, MagiculeGate.requiredMagicule(config, stat), stat));
+                            categoryName, ambient, required, stat));
+            return;
         }
+        // The evaluated allow, traced with the facts a block would carry -
+        // including the ambient's source, so "a constant stood in" never
+        // masquerades as "the world answered" (issue #65).
+        LOGGER.debug("{}", GateDiagnostics.evaluationMessage(decision.reason(), entityId,
+                dimensionId, categoryName, ambient, required, stat));
     }
 
     /** Applies the loaded datapack lists, after the category toggle. */
@@ -103,8 +121,8 @@ public final class SpawnSafetyHandler {
                 SafetyListExpansion.blacklist(category));
     }
 
-    /** The ambient magicule at the spawn position, fallback when unanswered. */
-    private static double ambient(ServerLevel level,
+    /** The ambient magicule at the spawn position, with its origin. */
+    private static AmbientRead.Reading ambient(ServerLevel level,
                                   BlockPos position,
                                   SafetyConfig config) {
         // Structure floors are not simulated here: they are written into the
@@ -133,19 +151,20 @@ public final class SpawnSafetyHandler {
      * zero when the block came from an earlier rule, which never computed
      * them). A listener that cancels it re-allows the spawn, so the result is
      * left untouched. Otherwise {@code Result.FAIL} lands and the reason is
-     * recorded at debug level: a passing gate and an untouched spawn log
-     * nothing, so the default experience stays quiet.</p>
+     * recorded at debug level: an untouched spawn logs nothing beyond its
+     * trace, so the default experience stays quiet.</p>
      */
     private static void block(MobSpawnEvent.PositionCheck event,
                               ServerLevel level,
                               Mob mob,
                               SpawnCategory category,
                               BlockPos position,
-                              double ambient,
+                              AmbientRead.Reading ambient,
                               double required,
                               String message) {
         SpawnGateDecisionEvent decision = new SpawnGateDecisionEvent(
-                level.dimension(), mob, category, position, ambient, required);
+                level.dimension(), mob, category, position,
+                ambient == null ? 0.0 : ambient.value(), required);
         NeoForge.EVENT_BUS.post(decision);
         if (decision.isCanceled()) {
             LOGGER.debug("Pack override re-allowed a spawn: {}", message);
