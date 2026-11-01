@@ -22,9 +22,44 @@ class GateDiagnosticsTest {
     void magiculeMessageCarriesTheNumbers() {
         assertEquals(
                 "Blocked natural spawn: entity=minecraft:sheep dimension=minecraft:overworld"
-                        + " category=PASSIVE reason=INSUFFICIENT_MAGICULE ambient=0.00 required=90.00 stat=100.00",
+                        + " category=PASSIVE reason=INSUFFICIENT_MAGICULE"
+                        + " ambient=0.00 source=FALLBACK modifiers=0 required=90.00 stat=100.00",
                 GateDiagnostics.blockMessage(GateReason.INSUFFICIENT_MAGICULE,
-                        "minecraft:sheep", "minecraft:overworld", "PASSIVE", 0.0, 90.0, 100.0));
+                        "minecraft:sheep", "minecraft:overworld", "PASSIVE",
+                        new AmbientRead.Reading(0.0, AmbientRead.Source.FALLBACK, 0),
+                        90.0, 100.0));
+    }
+
+    @Test
+    void magiculeMessageNamesAProviderAnswer() {
+        String message = GateDiagnostics.blockMessage(GateReason.INSUFFICIENT_MAGICULE,
+                "minecraft:zombie", "minecraft:overworld", "HOSTILE",
+                new AmbientRead.Reading(12.5, AmbientRead.Source.PROVIDER, 2),
+                90.0, 100.0);
+        assertTrue(message.contains("ambient=12.50"), message);
+        assertTrue(message.contains("source=PROVIDER"), message);
+        assertTrue(message.contains("modifiers=2"), message);
+    }
+
+    @Test
+    void evaluationMessageCarriesTheSameFactsAsABlock() {
+        assertEquals(
+                "Allowed natural spawn: entity=minecraft:zombie dimension=minecraft:overworld"
+                        + " category=HOSTILE reason=SUSTAINED"
+                        + " ambient=150.00 source=PROVIDER modifiers=1 required=90.00 stat=100.00",
+                GateDiagnostics.evaluationMessage(GateReason.SUSTAINED,
+                        "minecraft:zombie", "minecraft:overworld", "HOSTILE",
+                        new AmbientRead.Reading(150.0, AmbientRead.Source.PROVIDER, 1),
+                        90.0, 100.0));
+    }
+
+    @Test
+    void ignoredMessageNamesTheSwitch() {
+        assertEquals(
+                "Spawn not evaluated: dimension=minecraft:the_nether spawnType=MONSTER"
+                        + " why=dimension-not-affected",
+                GateDiagnostics.ignoredMessage(
+                        "minecraft:the_nether", "MONSTER", "dimension-not-affected"));
     }
 
     @Test
