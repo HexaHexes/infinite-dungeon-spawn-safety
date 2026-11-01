@@ -172,9 +172,11 @@ public final class SpawnSafetyGameTests {
                 ? null
                 : StructureElevation.all().get("minecraft:ruined_portal").get(0);
         helper.assertTrue(row != null, "the fixture row must load");
-        helper.assertTrue(row.radius() == 64.0, "the radius must survive parsing");
         helper.assertTrue(row.elevation() == 500.0, "the elevation must survive parsing");
-        helper.assertTrue(StructureElevation.maxRadius() == 64.0, "the scan bound must follow the rows");
+        // The reach scales with the baseline: sqrt(500) * 0.35 is under the
+        // floor, so this row's reach is the 48-block minimum.
+        helper.assertTrue(StructureElevation.maxRadius() == 48.0,
+                "the scan bound must follow the scaled reach");
         helper.succeed();
     }
 

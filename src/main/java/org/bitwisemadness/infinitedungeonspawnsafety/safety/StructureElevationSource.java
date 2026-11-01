@@ -14,23 +14,24 @@ import net.neoforged.fml.ModList;
 
 /**
  * The Minecraft boundary behind {@link StructureElevationLogic}: when a chunk
- * loads, every loaded chunk near it whose surroundings touch a listed structure
- * has its stored Tensura magicule concentration raised to at least that
- * structure's floor.
+ * loads, every loaded chunk near a listed structure gets its elevation
+ * installed as a Tensura block modifier, so Tensura's own concentration math
+ * carries the value from then on.
  *
- * <p>This is a real write, not a read-time simulation: the floor lands in the
- * chunk's Tensura storage ({@link TensuraChunkMagiculeBridge}), so the value
- * every consumer sees - Tensura's own {@code AreaMagiculeHelper}, the xaero
- * concentration overlay, and this mod's spawn gate - agrees on the elevated
- * concentration, and the rule "a structure's surrounding chunks carry at least
- * the baseline of its related mobs" holds in the world itself.</p>
+ * <p>This is the permanent form of the rule - the modifier is an input to
+ * Tensura's computation, not a stored value it later re-initialises away, and
+ * it is saved with the chunk's data. Values radiate from the structure's
+ * pieces (nearest chunks highest, the edge of the reach on the baseline) with
+ * a deterministic per-chunk variation, and the reach scales with the baseline
+ * (see {@link StructureElevationLogic}).</p>
  *
- * <p>The scan walks the chunk square the loaded rows can reach
- * ({@code maxRadius}) and reads each <em>loaded</em> chunk's own structure
- * references through a non-blocking {@code getChunkNow}, so the query never
- * loads or generates a chunk. Because every load re-evaluates its whole loaded
- * neighbourhood and the write only ever raises, the floors converge whichever
- * order the structure's pieces and its surrounding chunks load in.</p>
+ * <p>The scan walks the chunk square the rows can reach and reads each
+ * <em>loaded</em> chunk's own structure references through a non-blocking
+ * {@code getChunkNow}, so the query never loads or generates a chunk. Every
+ * load re-evaluates its whole loaded neighbourhood - installing, refreshing or
+ * removing the modifier - so the field converges whichever order the
+ * structure's pieces and its surrounding chunks load in. Inert without
+ * Tensura.</p>
  */
 public final class StructureElevationSource {
 
@@ -84,15 +85,10 @@ public final class StructureElevationSource {
                 }
             }
         }
-        if (pieces.isEmpty()) {
-            return;
-        }
         for (LevelChunk chunk : neighbourhood) {
-            OptionalDouble floor = StructureElevationLogic.floorFor(rows, pieces,
+            OptionalDouble value = StructureElevationLogic.contributionFor(rows, pieces,
                     chunk.getPos().getMinBlockX() + 8, chunk.getPos().getMinBlockZ() + 8);
-            if (floor.isPresent()) {
-                TensuraChunkMagiculeBridge.raiseTo(chunk, floor.getAsDouble());
-            }
+            TensuraChunkMagiculeBridge.refresh(chunk, value.orElse(0.0));
         }
     }
 
