@@ -43,6 +43,22 @@ versionRange = "[${api_version},)"
 ordering = "BEFORE"
 side = "BOTH"
 
+# Optional integrations - both presence-gated in the decision path, so
+# absence no-ops the leg that would have consulted them.
+[[dependencies.${mod_id}]]
+modId = "tensura"
+type = "optional"
+versionRange = "[2.0,)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.${mod_id}]]
+modId = "infinite_dungeon"
+type = "optional"
+versionRange = "[0.0,)"
+ordering = "AFTER"
+side = "BOTH"
+
 # Add your mod's dependencies below. Use type = "optional" for anything the mod
 # works without, and gate the code that touches it (mixins, registrations) so it
 # no-ops when the dependency is absent.
