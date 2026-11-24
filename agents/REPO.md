@@ -6,8 +6,8 @@ and pulled in verbatim - **never hand-edit it.** Everything in this file is this
 repo's own and is edited freely; keep it aligned with the org rules rather than
 restating them.
 
-**Repo:** `HexaHexes/infinite-dungeon-spawn-safety` · **Mod ID:** `infinite_dungeon_spawn_safety` · **Branch:** `main`
-**Platform:** Minecraft 1.21.1 / NeoForge 21.1.259 / JDK 21 · **Jar:** `build/libs/infinite_dungeon_spawn_safety-<version>.jar`
+**Repo:** `HexaHexes/infinite-dungeon-spawn-safety` · **Mod ID:** `infinite_dungeon_spawn_safety` · **Branch:** `neoforge-1.21.1` (the loader line; this is the default branch - no `main`)
+**Platform:** Minecraft 1.21.1 / NeoForge 21.1.259 / JDK 21 · **Jar:** `build/libs/infinite_dungeon_spawn_safety-neoforge-1.21.1-<version>.jar`
 
 A standalone spawn gate for the infinite-dungeon suite. It blocks only natural
 spawns, and only when the ambient magicule of the spawn chunk cannot sustain the
